@@ -1,0 +1,215 @@
+ruby-nnは、rubyで書かれたニューラルネットワークライブラリです。
+python向けの本格的なディープラーニングライブラリと比べると、性能や機能面で、大きく見劣りしますが、
+MNISTで98%以上の精度を出せるぐらいの性能はあります。
+
+なお、ruby-nnはNumo/NArrayを使用しています。
+そのため、ruby-nnの使用には、Numo/NArrayのインストールが必要です。
+
+
+[リファレンス]
+
+class NN
+ニューラルネットワークを扱うクラスです。
+
+<クラスメソッド>
+load(file_name) : NN
+JSON形式で保存された学習結果を読み込みます。
+  String file_name  読み込むJSONファイル名
+  戻り値  NNのインスタンス
+
+<プロパティ>
+Array<SFloat> weights  ネットワークの重みをSFloat形式で取得します。
+Array<SFloat> biases  ネットワークのバイアスをSFloat形式で取得します。
+Array<Float> gammas  バッチノーマライゼーションを使用している場合、gammaを取得します。
+Array<Float> betas  バッチノーマライゼーションを使用している場合、betaを取得します。
+Float learning_rate  学習率
+Integer batch_size  ミニバッチの数
+Array<Symbol> activation  活性化関数。配列の要素1が中間層の活性化関数で要素2が隠れ層の活性化関数です。
+                          中間層には、:sigmoidまたは:relu、出力層には、:identityまたは:softmaxが使用できます。
+Float momentum  モーメンタム係数
+Float weight_decay  L2正則化項の強さ
+Float dropout_ratio  ドロップアウトさせるノードの比率
+
+<インスタンスメソッド>
+initialize(num_nodes,
+           learning_rate: 0.01,
+           batch_size: 1,
+           activation: [:relu, :identity],
+           momentum: 0,
+           weight_decay: 0,
+           use_dropout: false,
+           dropout_ratio: 0.5,
+           use_batch_norm: false)
+オブジェクトを初期化します。
+  Array<Integer> num_nodes  各層のノード数
+  Float learning_rate  学習率
+  Integer batch_size  ミニバッチの数
+  Array<Symbol> activation  活性化関数。配列の要素1が中間層の活性化関数で要素2が隠れ層の活性化関数です。
+                            中間層には、:sigmoidまたは:relu、出力層には、:identityまたは:softmaxが使用できます。
+  Float momentum  モーメンタム係数
+  Float weight_decay  L2正則化項の強さ
+  bool use_dropout  ドロップアウトを使用するか否か
+  Float dropout_ratio  ドロップアウトさせるノードの比率
+  bool use_batch_norm  バッチノーマライゼーションを使用するか否か
+
+train(x_train, y_train, x_test, y_test, epochs,
+      learning_rate_decay: 0,
+      save_dir: nil,
+      save_interval: 1,
+      test: nil,
+      border: nil,
+      tolerance: 0.5,
+      &block) : void
+学習を行います。
+  Array<Array<Numeric>> | SFloat x_train  トレーニング用入力データ。
+  Array<Array<Numeric>> | SFloat y_train　トレーニング用正解データ。
+  Integer epochs  学習回数。入力データすべてを見たタイミングを1エポックとします。
+  Float learning_rate_decay  1エポックごとに学習率を減衰される値。
+  String save_dir  学習中にセーブを行う場合、セーブするディレクトリを指定します。nilの場合、セーブを行いません。
+  Integer save_interval  学習中にセーブするタイミングをエポック単位で指定します。
+  Array<Array<Array<Numeric>> | SFloat> test  テストで使用するデータ。[x_test, y_test]の形式で指定してください。
+                                              nilを指定すると、エポックごとにテストを行いません。
+  Float border  学習の早期終了判定に使用するテストデータの正答率。
+                nilの場合、学習の早期終了を行いません。
+  Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
+                                                   形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+
+test(x_test, y_test, tolerance = 0.5, &block) : Float
+テストデータを用いて、テストを行います。
+  Array<Array<Numeric>> | SFloat x_train  テスト用入力データ。
+  Array<Array<Numeric>> | SFloat y_train　テスト用正解データ。
+  Float tolerance  許容する誤差。出力層の活性化関数が:identityの場合に使用します。
+                   例えば出力が0.7で正解が1.0の場合、toleranceが0.4なら合格となり、0.2なら不合格となります。
+  Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
+                                                   形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+  戻り値  テストデータの正答率。
+
+accurate(x_test, y_test, tolera)
+テストデータを用いて、テストデータの正答率を取得します。
+  Array<Array<Numeric>> | SFloat x_train  テスト用入力データ。
+  Array<Array<Numeric>> | SFloat y_train　テスト用正解データ。
+  Float tolerance  許容する誤差。出力層の活性化関数が:identityの場合に使用します。
+                   例えば出力が0.7で正解が1.0の場合、toleranceが0.4なら合格となり、0.2なら不合格となります。
+  Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
+                                                   形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+  戻り値  テストデータの正答率。
+
+learn(x_train, y_train, &block) : Float
+入力データを元に、1回だけ学習を行います。途中で学習を切り上げるなど、柔軟な学習を行いたい場合に使用します。
+  Array<Array<Numeric>> | SFloat x_train  入力データ
+  Array<Array<Numeric>> | SFloat y_train  正解データ
+  Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
+                                                   形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+  戻り値  誤差関数の値。誤差関数は、出力層の活性化関数が:identityの場合、二乗和誤差が、
+         :softmaxの場合、クロスエントロピー誤差が使用されます。なお、L2正則化を使用する場合、
+         誤差関数の値には正則化項の値が含まれます。
+
+run(x) : Array<Array<Numeric>>
+入力データから出力値を二次元配列で得ます。
+  Array<Array<Float>> | SFloat x  入力データ
+  戻り値  出力ノードの値
+
+save(file_name) : void
+学習結果をJSON形式で保存します。
+  String file_name  書き込むJSONファイル名
+
+
+[サンプル1 XOR]
+
+#ライブラリの読み込み
+require "nn"
+
+x = [
+  [0, 0],
+  [1, 0],
+  [0, 1],
+  [1, 1],
+]
+
+y = [[0], [1], [1], [0]]
+
+#ニューラルネットワークの初期化
+nn = NN.new([2, 4, 1], #ノード数
+  learning_rate: 0.1, #学習率
+  batch_size: 4, #ミニバッチの数
+  activation: [:sigmoid, :identity] #活性化関数
+)
+
+#学習を行う
+nn.train(x, y, 20000)
+
+#学習結果の確認
+p nn.run(x)
+
+
+[MNISTデータを読み込む]
+MNISTをRubyでも簡単に試せるよう、MNISTを扱うためのモジュールを用意しました。
+次のリンク(http://yann.lecun.com/exdb/mnist/)から、
+train-images-idx3-ubyte.gz
+train-labels-idx1-ubyte.gz
+t10k-images-idx3-ubyte.gz
+t10k-labels-idx1-ubyte.gz
+の4つのファイルをダウンロードし、実行するRubyファイルと同じ階層のmnistディレクトリに格納したうえで、使用してください。
+
+MNIST.load_trainで学習用データを読み込み、MNIST.load_testでテスト用データを読み込みます。
+また、MNIST.categorycalを使用すると、正解データを10クラスにカテゴライズされた上で、配列形式で返します。
+(RubyでのMNISTの読み込みは、以下のリンクを参考にさせていただきました。)
+http://d.hatena.ne.jp/n_shuyo/20090913/mnist
+
+
+[サンプル2 MNIST]
+
+#ライブラリの読み込み
+require "nn"
+require "nn/mnist"
+
+#MNISTのトレーニング用データを読み込む
+x_train, y_train = MNIST.load_train
+
+#y_trainを10クラスに配列でカテゴライズする
+y_train = MNIST.categorical(y_train)
+
+#MNISTのテスト用データを読み込む
+x_test, y_test = MNIST.load_test
+
+#y_testを10クラスにカテゴライズする
+y_test = MNIST.categorical(y_test)
+
+puts "load mnist"
+
+#ニューラルネットワークの初期化
+nn = NN.new([784, 100, 100, 10], #ノード数
+  learning_rate: 0.1, #学習率
+  batch_size: 100, #ミニバッチの数
+  activation: [:relu, :softmax], #活性化関数
+  momentum: 0.9, #モーメンタム係数
+  use_batch_norm: true, #バッチノーマライゼーションを使用する
+)
+
+#学習を行う
+nn.train(x_train, y_train, 10, test: [x_test, y_test]) do |x_batch, y_batch|
+  x_batch /= 255 #ミニバッチを0~1の範囲で正規化
+  [x_batch, y_batch]
+end
+
+#学習結果のテストを行う
+nn.test(x_test, y_test) do |x_batch, y_batch|
+  x_batch /= 255 #ミニバッチを0~1の範囲で正規化
+  [x_batch, y_batch]
+end
+
+
+[お断り]
+作者は、ニューラルネットワークを勉強し始めたばかりの初心者です。
+そのため、バグや実装のミスもあるかと思いますが、温かい目で見守っていただけると、幸いでございます。
+
+
+[更新履歴]
+2018/3/8  バージョン1.0公開
+2018/3/11 バージョン1.1公開
+2018/3/13 バージョン1.2公開
+2018/3/14 バージョン1.3公開
+2018/3/18 バージョン1.4公開
+2018/3/22 バージョン1.5公開
+2018/4/15 バージョン1.6公開
+2018/5/4  バージョン1.8公開
