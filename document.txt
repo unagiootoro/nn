@@ -52,14 +52,7 @@ initialize(num_nodes,
   Float dropout_ratio  ドロップアウトさせるノードの比率
   bool use_batch_norm  バッチノーマライゼーションを使用するか否か
 
-train(x_train, y_train, x_test, y_test, epochs,
-      learning_rate_decay: 0,
-      save_dir: nil,
-      save_interval: 1,
-      test: nil,
-      border: nil,
-      tolerance: 0.5,
-      &block) : void
+train(x_train, y_train, x_test, y_test, epochs, func = nil, &block) : void
 学習を行います。
   Array<Array<Numeric>> | SFloat x_train  トレーニング用入力データ。
   Array<Array<Numeric>> | SFloat y_train　トレーニング用正解データ。
@@ -71,8 +64,9 @@ train(x_train, y_train, x_test, y_test, epochs,
                                               nilを指定すると、エポックごとにテストを行いません。
   Float border  学習の早期終了判定に使用するテストデータの正答率。
                 nilの場合、学習の早期終了を行いません。
-  Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
-                                                   形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+  Proc func(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
+                                                 形で指定してください。入力層をミニバッチ単位で正規化したい場合に使用します。
+  Proc block(Integer epoch) : void  1エポックの学習が終わった後で行いたい処理を、ブロックで渡します。
 
 test(x_test, y_test, tolerance = 0.5, &block) : Float
 テストデータを用いて、テストを行います。
@@ -95,7 +89,7 @@ accurate(x_test, y_test, tolera)
   戻り値  テストデータの正答率。
 
 learn(x_train, y_train, &block) : Float
-入力データを元に、1回だけ学習を行います。途中で学習を切り上げるなど、柔軟な学習を行いたい場合に使用します。
+入力データを元に、1回だけ学習を行います。柔軟な学習を行いたい場合に使用します。
   Array<Array<Numeric>> | SFloat x_train  入力データ
   Array<Array<Numeric>> | SFloat y_train  正解データ
   Proc &block(SFloat x, SFloat y) : Array<SFloat>  入力層のミニバッチを取得します。ブロックの戻り値は、ミニバッチを[x, y]の
@@ -106,7 +100,12 @@ learn(x_train, y_train, &block) : Float
 
 run(x) : Array<Array<Numeric>>
 入力データから出力値を二次元配列で得ます。
-  Array<Array<Float>> | SFloat x  入力データ
+  Array<Array<Float>> x  入力データ
+  戻り値  出力ノードの値
+
+run(x) : SFloat
+入力データから出力値をSFloat形式で得ます。
+  SFloat x  入力データ
   戻り値  出力ノードの値
 
 save(file_name) : void
@@ -213,3 +212,4 @@ end
 2018/3/22 バージョン1.5公開
 2018/4/15 バージョン1.6公開
 2018/5/4  バージョン1.8公開
+2018/5/16 バージョン2.0公開

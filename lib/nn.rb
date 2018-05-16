@@ -2,7 +2,7 @@ require "numo/narray"
 require "json"
 
 class NN
-  VERSION = "1.8"
+  VERSION = "2.0"
 
   include Numo
 
@@ -64,37 +64,19 @@ class NN
     nn
   end
 
-  def train(x_train, y_train, epochs,
-            learning_rate_decay: 0,
-            save_dir: nil,
-            save_interval: 1,
-            test: nil,
-            border: nil,
-            tolerance: 0.5,
-            &block)
+  def train(x_train, y_train, epochs, func = nil, &block)
     num_train_data = x_train.is_a?(SFloat) ? x_train.shape[0] : x_train.length
     (1..epochs).each do |epoch|
       loss = nil
       (num_train_data.to_f / @batch_size).ceil.times do
-        loss = learn(x_train, y_train, &block)
+        loss = learn(x_train, y_train, &func)
         if loss.nan?
           puts "loss is nan"
           return
         end
       end
-      if save_dir && epoch % save_interval == 0
-        save("#{save_dir}/epoch#{epoch}.json")
-      end
-      msg = "epoch #{epoch}/#{epochs} loss: #{loss}"
-      if test
-        acc = accurate(*test, tolerance, &block)
-        puts "#{msg} accurate: #{acc}"
-        break if border && acc >= border
-      else
-        puts msg
-      end
-      @learning_rate -= learning_rate_decay
-      @learning_rate = 1e-7 if @learning_rate < 1e-7
+      puts "epoch #{epoch}/#{epochs} loss: #{loss}"
+      block.call(epoch) if block
     end
   end
 
@@ -160,9 +142,11 @@ class NN
   end
 
   def run(x)
-    x = SFloat.cast(x) if x.is_a?(Array)
-    out = forward(x, false)
-    out.to_a
+    if x.is_a?(Array)
+      forward(SFloat.cast(x), false).to_a
+    else
+      forward(x, false)
+    end
   end
 
   def save(file_name)
@@ -257,22 +241,30 @@ class NN
   def update_weight_and_bias
     @layers.select{|layer| layer.is_a?(Affine)}.each.with_index do |layer, i|
       weight_amount = layer.d_weight.mean(0) * @learning_rate
-      @weight_amounts[i] = weight_amount + @momentum * @weight_amounts[i]
-      @weights[i] -= @weight_amounts[i]
       bias_amount = layer.d_bias.mean * @learning_rate
-      @bias_amounts[i] = bias_amount + @momentum * @bias_amounts[i]
-      @biases[i] -= @bias_amounts[i]
+      if @momentum > 0
+        weight_amount += @momentum * @weight_amounts[i]
+        @weight_amounts[i] = weight_amount
+        bias_amount += @momentum * @bias_amounts[i]
+        @bias_amounts[i] = bias_amount
+      end
+      @weights[i] -= weight_amount
+      @biases[i] -= bias_amount
     end
   end
 
   def update_gamma_and_beta
     @layers.select{|layer| layer.is_a?(BatchNorm)}.each.with_index do |layer, i|
       gamma_amount = layer.d_gamma.mean * @learning_rate
-      @gamma_amounts[i] = gamma_amount + @momentum * @gamma_amounts[i]
-      @gammas[i] -= @gamma_amounts[i]
       beta_amount = layer.d_beta.mean * @learning_rate
-      @beta_amounts[i] = beta_amount + @momentum * @beta_amounts[i]
-      @betas[i] -= @beta_amounts[i]
+      if @momentum > 0
+        gamma_amount += @momentum * @gamma_amounts[i]
+        @gamma_amounts[i] = gamma_amount
+        beta_amount += @momentum * @beta_amounts[i]
+        @beta_amounts[i] = beta_amount
+      end
+      @gammas[i] -= gamma_amount
+      @betas[i] -= gamma_amount
     end
   end
 end
@@ -298,8 +290,11 @@ class NN::Affine
 
   def backward(dout)
     x = @x.reshape(*@x.shape, 1)
-    d_ridge = @nn.weight_decay * @nn.weights[@index]
-    @d_weight = x.dot(dout.reshape(dout.shape[0], 1, dout.shape[1])) + d_ridge
+    @d_weight = x.dot(dout.reshape(dout.shape[0], 1, dout.shape[1]))
+    if @nn.weight_decay > 0
+      dridge = @nn.weight_decay * @nn.weights[@index]
+      @d_weight += dridge
+    end
     @d_bias = dout
     dout.dot(@nn.weights[@index].transpose)
   end

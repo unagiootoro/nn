@@ -14,4 +14,4 @@ MNISTで98%以上の精度を出せるぐらいの性能はあります。
 
 ## ライセンス
 
-この宝石は、[MITライセンス](https://opensource.org/licenses/MIT)の条件でオープンソースとして入手できます。
+このgemは、[MITライセンス](https://opensource.org/licenses/MIT)の条件でオープンソースとして入手できます。
