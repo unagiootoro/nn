@@ -5,7 +5,7 @@ require "nn"
 
 Gem::Specification.new do |spec|
   spec.name          = "nn"
-  spec.version       = NN::VERSION + ".1"
+  spec.version       = NN::VERSION + ".0"
   spec.authors       = ["unagiootoro"]
   spec.email         = ["ootoro838861@outlook.jp"]
 

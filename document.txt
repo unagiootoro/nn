@@ -13,6 +13,11 @@ class NN
 
 <クラスメソッド>
 load(file_name) : NN
+Marshal形式で保存された学習結果を読み込みます。
+  String file_name  読み込むMarshalファイル名
+  戻り値  NNのインスタンス
+
+load_json(file_name) : NN
 JSON形式で保存された学習結果を読み込みます。
   String file_name  読み込むJSONファイル名
   戻り値  NNのインスタンス
@@ -109,6 +114,10 @@ run(x) : SFloat
   戻り値  出力ノードの値
 
 save(file_name) : void
+学習結果をMarshal形式で保存します。
+  String file_name  書き込むMarshalファイル名
+
+save_json(file_name) : void
 学習結果をJSON形式で保存します。
   String file_name  書き込むJSONファイル名
 
@@ -142,3 +151,4 @@ http://d.hatena.ne.jp/n_shuyo/20090913/mnist
 2018/5/4  バージョン1.8公開
 2018/5/16 バージョン2.0公開
 2018/6/10 バージョン2.0.1公開
+2018/6/10 バージョン2.1.0公開

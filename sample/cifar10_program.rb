@@ -32,7 +32,7 @@ func = -> x, y do
   [x, y]
 end
 
-nn.train(x_train, y_train, 50, func) do |epoch|
+nn.train(x_train, y_train, 20, func) do |epoch|
   nn.test(x_test, y_test, &func)
   nn.learning_rate *= 0.99
 end
