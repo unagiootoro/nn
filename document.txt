@@ -113,34 +113,6 @@ save(file_name) : void
   String file_name  書き込むJSONファイル名
 
 
-[サンプル1 XOR]
-
-#ライブラリの読み込み
-require "nn"
-
-x = [
-  [0, 0],
-  [1, 0],
-  [0, 1],
-  [1, 1],
-]
-
-y = [[0], [1], [1], [0]]
-
-#ニューラルネットワークの初期化
-nn = NN.new([2, 4, 1], #ノード数
-  learning_rate: 0.1, #学習率
-  batch_size: 4, #ミニバッチの数
-  activation: [:sigmoid, :identity] #活性化関数
-)
-
-#学習を行う
-nn.train(x, y, 20000)
-
-#学習結果の確認
-p nn.run(x)
-
-
 [MNISTデータを読み込む]
 MNISTをRubyでも簡単に試せるよう、MNISTを扱うためのモジュールを用意しました。
 次のリンク(http://yann.lecun.com/exdb/mnist/)から、
@@ -155,53 +127,9 @@ MNIST.load_trainで学習用データを読み込み、MNIST.load_testでテス�
 (RubyでのMNISTの読み込みは、以下のリンクを参考にさせていただきました。)
 http://d.hatena.ne.jp/n_shuyo/20090913/mnist
 
-
-[サンプル2 MNIST]
-
-#ライブラリの読み込み
-require "nn"
-require "nn/mnist"
-
-#MNISTのトレーニング用データを読み込む
-x_train, y_train = MNIST.load_train
-
-#y_trainを10クラスに配列でカテゴライズする
-y_train = MNIST.categorical(y_train)
-
-#MNISTのテスト用データを読み込む
-x_test, y_test = MNIST.load_test
-
-#y_testを10クラスにカテゴライズする
-y_test = MNIST.categorical(y_test)
-
-puts "load mnist"
-
-#ニューラルネットワークの初期化
-nn = NN.new([784, 100, 100, 10], #ノード数
-  learning_rate: 0.1, #学習率
-  batch_size: 100, #ミニバッチの数
-  activation: [:relu, :softmax], #活性化関数
-  momentum: 0.9, #モーメンタム係数
-  use_batch_norm: true, #バッチノーマライゼーションを使用する
-)
-
-#学習を行う
-nn.train(x_train, y_train, 10, test: [x_test, y_test]) do |x_batch, y_batch|
-  x_batch /= 255 #ミニバッチを0~1の範囲で正規化
-  [x_batch, y_batch]
-end
-
-#学習結果のテストを行う
-nn.test(x_test, y_test) do |x_batch, y_batch|
-  x_batch /= 255 #ミニバッチを0~1の範囲で正規化
-  [x_batch, y_batch]
-end
-
-
 [お断り]
 作者は、ニューラルネットワークを勉強し始めたばかりの初心者です。
 そのため、バグや実装のミスもあるかと思いますが、温かい目で見守っていただけると、幸いでございます。
-
 
 [更新履歴]
 2018/3/8  バージョン1.0公開
@@ -213,3 +141,4 @@ end
 2018/4/15 バージョン1.6公開
 2018/5/4  バージョン1.8公開
 2018/5/16 バージョン2.0公開
+2018/6/10 バージョン2.0.1公開
