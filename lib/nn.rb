@@ -2,7 +2,7 @@ require "numo/narray"
 require "json"
 
 class NN
-  VERSION = "2.0"
+  VERSION = "2.1"
 
   include Numo
 
@@ -44,6 +44,10 @@ class NN
   end
 
   def self.load(file_name)
+    Marshal.load(File.binread(file_name))
+  end
+
+  def self.load_json(file_name)
     json = JSON.parse(File.read(file_name))
     nn = self.new(json["num_nodes"],
       learning_rate: json["learning_rate"],
@@ -150,6 +154,10 @@ class NN
   end
 
   def save(file_name)
+    File.binwrite(file_name, Marshal.dump(self))
+  end
+
+  def save_json(file_name)
     json = {
       "version" => VERSION,
       "num_nodes" => @num_nodes,
@@ -240,8 +248,8 @@ class NN
 
   def update_weight_and_bias
     @layers.select{|layer| layer.is_a?(Affine)}.each.with_index do |layer, i|
-      weight_amount = layer.d_weight.mean(0) * @learning_rate
-      bias_amount = layer.d_bias.mean * @learning_rate
+      weight_amount = layer.d_weight * @learning_rate
+      bias_amount = layer.d_bias * @learning_rate
       if @momentum > 0
         weight_amount += @momentum * @weight_amounts[i]
         @weight_amounts[i] = weight_amount
@@ -255,8 +263,8 @@ class NN
 
   def update_gamma_and_beta
     @layers.select{|layer| layer.is_a?(BatchNorm)}.each.with_index do |layer, i|
-      gamma_amount = layer.d_gamma.mean * @learning_rate
-      beta_amount = layer.d_beta.mean * @learning_rate
+      gamma_amount = layer.d_gamma * @learning_rate
+      beta_amount = layer.d_beta * @learning_rate
       if @momentum > 0
         gamma_amount += @momentum * @gamma_amounts[i]
         @gamma_amounts[i] = gamma_amount
@@ -290,20 +298,22 @@ class NN::Affine
 
   def backward(dout)
     x = @x.reshape(*@x.shape, 1)
-    @d_weight = x.dot(dout.reshape(dout.shape[0], 1, dout.shape[1]))
+    @d_weight = x.dot(dout.reshape(dout.shape[0], 1, dout.shape[1])).mean(0)
     if @nn.weight_decay > 0
       dridge = @nn.weight_decay * @nn.weights[@index]
       @d_weight += dridge
     end
-    @d_bias = dout
+    @d_bias = dout.mean
     dout.dot(@nn.weights[@index].transpose)
   end
 end
 
 
 class NN::Sigmoid
+  include Numo
+
   def forward(x)
-    @out = 1.0 / (1 + Numo::NMath.exp(-x))
+    @out = 1.0 / (1 + NMath.exp(-x))
   end
 
   def backward(dout)
@@ -328,8 +338,6 @@ end
 
 
 class NN::Identity
-  include Numo
-
   def initialize(nn)
     @nn = nn
   end
@@ -419,8 +427,8 @@ class NN::BatchNorm
   end
 
   def backward(dout)
-    @d_beta = dout.sum(0)
-    @d_gamma = (@xn * dout).sum(0)
+    @d_beta = dout.sum(0).mean
+    @d_gamma = (@xn * dout).sum(0).mean
     dxn = @nn.gammas[@index] * dout
     dxc = dxn / @std
     dstd = -((dxn * @xc) / (@std ** 2)).sum(0)
