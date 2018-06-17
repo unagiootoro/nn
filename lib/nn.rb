@@ -2,7 +2,7 @@ require "numo/narray"
 require "json"
 
 class NN
-  VERSION = "2.1"
+  VERSION = "2.2"
 
   include Numo
 
@@ -297,13 +297,12 @@ class NN::Affine
   end
 
   def backward(dout)
-    x = @x.reshape(*@x.shape, 1)
-    @d_weight = x.dot(dout.reshape(dout.shape[0], 1, dout.shape[1])).mean(0)
+    @d_weight = @x.transpose.dot(dout)
     if @nn.weight_decay > 0
       dridge = @nn.weight_decay * @nn.weights[@index]
       @d_weight += dridge
     end
-    @d_bias = dout.mean
+    @d_bias = dout.sum(0)
     dout.dot(@nn.weights[@index].transpose)
   end
 end
@@ -347,7 +346,7 @@ class NN::Identity
   end
 
   def backward(y)
-    @out - y
+    (@out - y) / @nn.batch_size
   end
 
   def loss(y)
@@ -369,7 +368,7 @@ class NN::Softmax
   end
 
   def backward(y)
-    @out - y
+    (@out - y) / @nn.batch_size
   end
 
   def loss(y)
