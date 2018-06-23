@@ -2,7 +2,7 @@ require "numo/narray"
 require "json"
 
 class NN
-  VERSION = "2.3"
+  VERSION = "2.4"
 
   include Numo
 
@@ -424,8 +424,8 @@ class NN::BatchNorm
   end
 
   def backward(dout)
-    @d_beta = dout.sum(0).mean
-    @d_gamma = (@xn * dout).sum(0).mean
+    @d_beta = dout.sum(0)
+    @d_gamma = (@xn * dout).sum(0)
     dxn = @nn.gammas[@index] * dout
     dxc = dxn / @std
     dstd = -((dxn * @xc) / (@std ** 2)).sum(0)
