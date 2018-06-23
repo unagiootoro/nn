@@ -2,7 +2,7 @@ require "numo/narray"
 require "json"
 
 class NN
-  VERSION = "2.2"
+  VERSION = "2.3"
 
   include Numo
 
@@ -124,17 +124,17 @@ class NN
   end
 
   def learn(x_train, y_train, &block)
-    x = SFloat.zeros(@batch_size, @num_nodes.first)
-    y = SFloat.zeros(@batch_size, @num_nodes.last)
-    @batch_size.times do |i|
-      if x_train.is_a?(SFloat)
-        r = rand(x_train.shape[0])
-        x[i, true] = x_train[r, true]
-        y[i, true] = y_train[r, true]
-      else
-        r = rand(x_train.length)
-        x[i, true] = SFloat.cast(x_train[r])
-        y[i, true] = SFloat.cast(y_train[r])
+    if x_train.is_a?(SFloat)
+      indexes = (0...x_train.shape[0]).to_a.sample(@batch_size)
+      x = x_train[indexes, true]
+      y = y_train[indexes, true]
+    else
+      indexes = (0...x_train.length).to_a.sample(@batch_size)
+      x = SFloat.zeros(@batch_size, @num_nodes.first)
+      y = SFloat.zeros(@batch_size, @num_nodes.last)
+      @batch_size.times do |i|
+        x[i, true] = SFloat.cast(x_train[indexes[i]])
+        y[i, true] = SFloat.cast(y_train[indexes[i]])
       end
     end
     x, y = block.call(x, y) if block
@@ -415,14 +415,12 @@ class NN::BatchNorm
   end
 
   def forward(x)
-    @x = x
     @mean = x.mean(0)
     @xc = x - @mean
     @var = (@xc ** 2).mean(0)
     @std = NMath.sqrt(@var + 1e-7)
     @xn = @xc / @std
-    out = @nn.gammas[@index] * @xn + @nn.betas[@index]
-    out.reshape(*@x.shape)
+    @nn.gammas[@index] * @xn + @nn.betas[@index]
   end
 
   def backward(dout)
@@ -434,7 +432,6 @@ class NN::BatchNorm
     dvar = 0.5 * dstd / @std
     dxc += (2.0 / @nn.batch_size) * @xc * dvar
     dmean = dxc.sum(0)
-    dx = dxc - dmean / @nn.batch_size
-    dx.reshape(*@x.shape)
+    dxc - dmean / @nn.batch_size
   end
 end
